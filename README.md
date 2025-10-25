@@ -48,9 +48,11 @@
 1. 克隆项目到本地
 2. 在项目根目录启动HTTP服务器：
    #### 使用Node.js (需要安装http-server)
+   ```
    npx http-server -p 8000
-   
+   ```
    #### 使用Python HTTP服务器
+   ```
    python -m http.server 8888
    ```
 4. 在浏览器中访问 `http://localhost:8080`

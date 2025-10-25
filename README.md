@@ -50,9 +50,10 @@
    #### 使用Node.js (需要安装http-server)
    npx http-server -p 8000
    
-   #### 使用其他HTTP服务器
+   #### 使用Python HTTP服务器
+   python -m http.server 8888
    ```
-3. 在浏览器中访问 `http://localhost:8080`
+4. 在浏览器中访问 `http://localhost:8080`
 
 ### 词库格式
 默认从`https://word.iciba.com`复制的单词格式

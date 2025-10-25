@@ -53,7 +53,7 @@
    ```
    #### 使用Python HTTP服务器
    ```
-   python -m http.server 8888
+   python -m http.server 8000
    ```
 4. 在浏览器中访问 `http://localhost:8080`
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词默写练习</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>单词默写练习</h1>
+        
+        <div class="mode-selector">
+            <button id="mode1" class="mode-btn active">默写模式</button>
+            <button id="mode2" class="mode-btn">翻译模式</button>
+        </div>
+
+        <div id="word-bank-section">
+            <h2>词库管理</h2>
+            <div class="tag-management">
+                <label for="tagName">标签名称:</label>
+                <input type="text" id="tagName" placeholder="请输入标签名称">
+                <button id="addTag">添加标签</button>
+            </div>
+            <div id="tags-container">
+                <h3>现有标签:</h3>
+                <div id="tags-list"></div>
+            </div>
+            <textarea id="wordBank" placeholder="请输入单词库，格式如下：
+aunt [ɑ:nt]  
+n. 阿姨; 姑妈等
+card [kɑ:d]  
+n. 卡片; 名片; 纸牌
+fold [fəuld]  
+v. 折叠; 折起来; 合拢 n. 褶;...
+grandfather [ˈɡrændˌfɑ:ðə]  
+n. 祖父; 外祖父"></textarea>
+            <button id="saveWordBank">保存词库</button>
+            <button id="enterExamMode" class="exam-btn" style="margin-top: 10px;">返回首页</button>
+        </div>
+
+        <div id="exam-controls" style="display: none; text-align: center; margin: 20px 0;">
+            <button id="startExam" class="exam-btn">开始默写</button>
+            <button id="viewWrongWords" class="exam-btn">查看错题本</button>
+            <button id="clearWrongWords" class="exam-btn">清空错题本</button>
+            <button id="viewExamHistory" class="exam-btn">查看考试记录</button>
+            <button id="manageWordBank" class="exam-btn">词库管理</button>
+        </div>
+
+        <div id="tag-selection-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-tag-selection">&times;</span>
+                <h2>选择词库标签</h2>
+                <div class="tag-selection-modal-content">
+                    <select id="tagSelectorModal" style="width: 80%; padding: 10px; margin: 20px 0;"></select>
+                    <button id="confirmTagSelection" class="exam-btn">确认选择</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="practice-section" style="display: none;">
+            <div class="exam-header">
+                <h2>默写练习</h2>
+                <div class="exam-progress">
+                    <span id="progress-text">进度: 0/0</span>
+                    <button id="endExam" class="end-exam-btn">结束考试</button>
+                </div>
+            </div>
+            <div id="question"></div>
+            <input type="text" id="answer" placeholder="请输入答案">
+            <div class="button-group">
+                <button id="speakBtn">朗读</button>
+                <button id="checkAnswer">检查答案</button>
+                <button id="nextWord">下一个</button>
+            </div>
+            <div id="result"></div>
+        </div>
+
+        <div id="stats-section">
+            <h3>练习统计</h3>
+            <p>正确: <span id="correctCount">0</span> | 错误: <span id="wrongCount">0</span></p>
+        </div>
+        
+        <div id="wrong-words-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>错题本</h2>
+                <div id="wrong-words-list"></div>
+            </div>
+        </div>
+        
+        <div id="exam-history-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-history">&times;</span>
+                <h2>考试记录</h2>
+                <div id="exam-history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

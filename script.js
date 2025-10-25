@@ -1,3 +1,6 @@
+// 导入存储适配器
+import { getItem, setItem, removeItem } from './storageAdapter.js';
+
 // 默认词库
 const defaultWordBank = `aunt [ɑ:nt]  
 n. 阿姨; 姑妈等
@@ -106,9 +109,9 @@ function parseWordBank(text) {
 }
 
 // 初始化应用
-function initApp() {
+async function initApp() {
     // 检查本地存储中是否有词库
-    const savedWordBank = localStorage.getItem('wordBank');
+    const savedWordBank = await getItem('wordBank');
     if (savedWordBank) {
         elements.wordBankTextarea.value = savedWordBank;
         appState.wordBank = parseWordBank(savedWordBank);
@@ -118,38 +121,42 @@ function initApp() {
     }
     
     // 检查本地存储中的带标签词库
-    const savedTaggedWordBanks = localStorage.getItem('taggedWordBanks');
+    const savedTaggedWordBanks = await getItem('taggedWordBanks');
     if (savedTaggedWordBanks) {
-        appState.taggedWordBanks = JSON.parse(savedTaggedWordBanks);
+        appState.taggedWordBanks = typeof savedTaggedWordBanks === 'string' ? 
+            JSON.parse(savedTaggedWordBanks) : savedTaggedWordBanks;
     } else {
         // 初始化默认标签
         appState.taggedWordBanks = {
             "错题本": [],
             "系统默认": appState.wordBank
         };
-        localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+        await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
     }
     
     // 检查本地存储中的统计数据
-    const savedStats = localStorage.getItem('stats');
+    const savedStats = await getItem('stats');
     if (savedStats) {
-        appState.stats = JSON.parse(savedStats);
+        appState.stats = typeof savedStats === 'string' ? 
+            JSON.parse(savedStats) : savedStats;
         updateStatsDisplay();
     }
     
     // 检查本地存储中的错题本
-    const savedWrongWords = localStorage.getItem('wrongWords');
+    const savedWrongWords = await getItem('wrongWords');
     if (savedWrongWords) {
-        appState.wrongWords = JSON.parse(savedWrongWords);
+        appState.wrongWords = typeof savedWrongWords === 'string' ? 
+            JSON.parse(savedWrongWords) : savedWrongWords;
         // 更新错题本标签
         appState.taggedWordBanks["错题本"] = appState.wrongWords;
-        localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+        await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
     }
     
     // 检查本地存储中的考试记录
-    const savedExamRecords = localStorage.getItem('examRecords');
+    const savedExamRecords = await getItem('examRecords');
     if (savedExamRecords) {
-        appState.examRecords = JSON.parse(savedExamRecords);
+        appState.examRecords = typeof savedExamRecords === 'string' ? 
+            JSON.parse(savedExamRecords) : savedExamRecords;
     }
     
     // 绑定事件
@@ -326,7 +333,7 @@ function updateTagSelector() {
 }
 
 // 添加标签
-function addTag() {
+async function addTag() {
     const tagName = elements.tagNameInput.value.trim();
     if (!tagName) {
         alert('请输入标签名称！');
@@ -347,8 +354,8 @@ function addTag() {
     const wordBank = parseWordBank(wordBankText);
     appState.taggedWordBanks[tagName] = wordBank;
     
-    // 保存到本地存储
-    localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+    // 保存到存储
+    await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
     
     // 清空输入框
     elements.tagNameInput.value = '';
@@ -361,12 +368,12 @@ function addTag() {
 }
 
 // 删除标签
-function removeTag(tag) {
+async function removeTag(tag) {
     if (confirm(`确定要删除标签 "${tag}" 吗？`)) {
         delete appState.taggedWordBanks[tag];
         
-        // 保存到本地存储
-        localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+        // 保存到存储
+        await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
         
         // 更新标签列表和选择器
         renderTags();
@@ -415,7 +422,7 @@ function switchMode(mode) {
 }
 
 // 保存词库
-function saveWordBank() {
+async function saveWordBank() {
     const wordBankText = elements.wordBankTextarea.value.trim();
     if (!wordBankText) {
         alert('请输入词库内容！');
@@ -424,20 +431,20 @@ function saveWordBank() {
     
     appState.wordBank = parseWordBank(wordBankText);
     
-    // 保存到本地存储
-    localStorage.setItem('wordBank', wordBankText);
+    // 保存到存储
+    await setItem('wordBank', wordBankText);
     
     // 如果有当前标签，也更新该标签的词库
     if (appState.currentTag && appState.currentTag !== "错题本") {
         appState.taggedWordBanks[appState.currentTag] = appState.wordBank;
-        localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+        await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
         
         // 更新标签列表以反映更改
         renderTags();
     } else {
         // 默认保存到系统默认标签
         appState.taggedWordBanks["系统默认"] = appState.wordBank;
-        localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+        await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
         
         // 更新标签列表以反映更改
         renderTags();
@@ -448,7 +455,7 @@ function saveWordBank() {
     
     // 重置统计数据
     appState.stats = { correct: 0, wrong: 0 };
-    localStorage.setItem('stats', JSON.stringify(appState.stats));
+    await setItem('stats', JSON.stringify(appState.stats));
     updateStatsDisplay();
     
     alert('词库保存成功！');
@@ -467,7 +474,7 @@ function startExam() {
     if (!appState.currentTag) {
         appState.currentTag = "系统默认";
         appState.taggedWordBanks[appState.currentTag] = appState.wordBank;
-        localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+        setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
     }
     
     const wordBank = appState.taggedWordBanks[appState.currentTag];
@@ -683,7 +690,7 @@ function endExam() {
 }
 
 // 结束考试
-function finishExam() {
+async function finishExam() {
     // 记录考试结果
     if (appState.examMode && (appState.stats.correct > 0 || appState.stats.wrong > 0)) {
         const total = appState.stats.correct + appState.stats.wrong;
@@ -699,8 +706,8 @@ function finishExam() {
         
         appState.examRecords.push(examRecord);
         
-        // 保存考试记录到本地存储
-        localStorage.setItem('examRecords', JSON.stringify(appState.examRecords));
+        // 保存考试记录到存储
+        await setItem('examRecords', JSON.stringify(appState.examRecords));
     }
     
     elements.practiceSection.style.display = 'none';
@@ -761,12 +768,12 @@ function checkAnswer() {
     }
     
     // 保存统计数据到本地存储
-    localStorage.setItem('stats', JSON.stringify(appState.stats));
+    setItem('stats', JSON.stringify(appState.stats));
     updateStatsDisplay();
 }
 
 // 添加到错题本
-function addToWrongWords() {
+async function addToWrongWords() {
     const currentWord = appState.currentWordBank[appState.currentWordIndex];
     
     // 检查是否已在错题本中
@@ -787,19 +794,19 @@ function addToWrongWords() {
     // 更新错题本标签
     appState.taggedWordBanks["错题本"] = appState.wrongWords;
     
-    // 保存错题本到本地存储
-    localStorage.setItem('wrongWords', JSON.stringify(appState.wrongWords));
-    localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+    // 保存错题本到存储
+    await setItem('wrongWords', JSON.stringify(appState.wrongWords));
+    await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
 }
 
 //清除错题本
-function cleanWrongWords() {
+async function cleanWrongWords() {
     appState.wrongWords = [];
-    localStorage.setItem('wrongWords', JSON.stringify(appState.wrongWords));
+    await setItem('wrongWords', JSON.stringify(appState.wrongWords));
 
     //删除错题本标签
     delete appState.taggedWordBanks["错题本"];
-    localStorage.setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+    await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
 }
 
 // 判断解释是否相似

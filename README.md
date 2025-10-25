@@ -14,7 +14,6 @@
 - **语音朗读**: 支持单词发音朗读功能
 
 ### 存储支持
-- **LocalStorage**: 默认存储方式，适合小量数据
 - **IndexedDB**: 默认启用，支持大量数据存储
 - **后端API**: 可配置连接后端服务
 
@@ -39,7 +38,6 @@
 ├── 适配器层 (storageAdapter.js)
 ├── 配置管理 (config.js)
 └── 多种存储引擎支持
-    ├── LocalStorage
     ├── IndexedDB
     └── 后端API
 ```

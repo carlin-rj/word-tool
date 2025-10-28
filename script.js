@@ -84,17 +84,18 @@ function parseWordBank(text) {
             const explanationLine = lines[i + 1] ? lines[i + 1].trim() : '';
             if (explanationLine) {
                 // 提取英语单词和音标
-                const englishMatch = englishLine.match(/^([a-zA-Z]+)(?:\s+(\[[^\]]+\]))?/);
+                const englishMatch = englishLine.match(/^([a-zA-Z\- ]+?)(?:\s+(\[[^\]]+\]))?$/);
                 if (englishMatch) {
                     const english = englishMatch[1];
                     const phonetic = englishMatch[2] || '';
                     
                     words.push({
-                        english: english,
+                        english: english.trim(),
                         phonetic: phonetic,
                         explanation: explanationLine,
                         wrongCount: 0 // 错误次数
                     });
+
                 }
                 i += 2;
             } else {

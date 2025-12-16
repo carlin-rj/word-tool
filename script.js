@@ -15,7 +15,7 @@ n. 祖父; 外祖父`;
 let appState = {
     wordBank: [],
     taggedWordBanks: {}, // 带标签的词库
-    currentMode: 1, // 1: 根据解释默写英语, 2: 根据英语写解释
+    currentMode: 1, // 1: 根据解释默写英语, 2: 根据英语写解释, 3: 阅读模式
     currentWordIndex: 0,
     stats: {
         correct: 0,
@@ -29,7 +29,17 @@ let appState = {
     wrongWords: [], // 错题本
     currentWordBank: [], // 当前使用的词库
     currentTag: null, // 当前标签
-    examRecords: [] // 考试记录
+    examRecords: [], // 考试记录
+    // 阅读模式状态
+    readingMode: false,
+    currentPage: 1,
+    pageSize: 10,
+    readingWordBank: [],
+    selectedWords: new Set(), // 选中的单词
+    // 卡片学习状态
+    cardStudyMode: false,
+    cardStudyWords: [],
+    currentCardIndex: 0
 };
 
 // DOM元素
@@ -69,7 +79,35 @@ const elements = {
     confirmTagSelectionBtn: document.getElementById('confirmTagSelection'),
     closeTagSelectionModal: document.querySelector('.close-tag-selection'),
     speakBtn: document.getElementById('speakBtn'),
-    clearWrongWordsBtn: document.getElementById('clearWrongWords')
+    clearWrongWordsBtn: document.getElementById('clearWrongWords'),
+    // 阅读模式元素
+    startReadingBtn: document.getElementById('startReading'),
+    readingSection: document.getElementById('reading-section'),
+    exitReadingBtn: document.getElementById('exitReading'),
+    readingTagSelector: document.getElementById('readingTagSelector'),
+    wordList: document.getElementById('word-list'),
+    selectAllCheckbox: document.getElementById('selectAll'),
+    prevPageBtn: document.getElementById('prevPage'),
+    nextPageBtn: document.getElementById('nextPage'),
+    pageInfo: document.getElementById('pageInfo'),
+    pageJumpInput: document.getElementById('pageJump'),
+    goToPageBtn: document.getElementById('goToPage'),
+    pageSizeSelector: document.getElementById('pageSizeSelector'),
+    totalCountSpan: document.getElementById('totalCount'),
+    startCardStudyBtn: document.getElementById('startCardStudy'),
+    // 卡片学习元素
+    cardStudySection: document.getElementById('card-study-section'),
+    exitCardStudyBtn: document.getElementById('exitCardStudy'),
+    cardWordText: document.getElementById('card-word-text'),
+    cardPhonetic: document.getElementById('card-phonetic'),
+    cardSpeakBtn: document.getElementById('card-speak-btn'),
+    cardMeaningText: document.getElementById('card-meaning-text'),
+    cardWriteInput: document.getElementById('card-write-input'),
+    cardWriteResult: document.getElementById('card-write-result'),
+    cardProgressText: document.getElementById('card-progress-text'),
+    cardPrevBtn: document.getElementById('card-prev-btn'),
+    cardNextBtn: document.getElementById('card-next-btn'),
+    cardGotoTestBtn: document.getElementById('card-goto-test')
 };
 
 // 解析词库文本
@@ -201,6 +239,7 @@ function bindEvents() {
     elements.viewExamHistoryBtn.addEventListener('click', viewExamHistory);
     elements.enterExamModeBtn.addEventListener('click', showExamControls);
     elements.manageWordBankBtn.addEventListener('click', showWordBankSection);
+    elements.startReadingBtn.addEventListener('click', startReadingMode);
     
     // 标签选择模态框
     elements.confirmTagSelectionBtn.addEventListener('click', startExamWithSelectedTag);
@@ -246,6 +285,31 @@ function bindEvents() {
                 // 否则检查答案
                 checkAnswer();
             }
+        }
+    });
+    
+    // 阅读模式事件
+    elements.exitReadingBtn.addEventListener('click', exitReadingMode);
+    elements.readingTagSelector.addEventListener('change', loadReadingWordBank);
+    elements.selectAllCheckbox.addEventListener('change', toggleSelectAll);
+        elements.prevPageBtn.addEventListener('click', prevPage);
+    elements.nextPageBtn.addEventListener('click', nextPage);
+    elements.goToPageBtn.addEventListener('click', goToPage);
+    elements.pageSizeSelector.addEventListener('change', changePageSize);
+    elements.startCardStudyBtn.addEventListener('click', startCardStudy);
+    
+    // 卡片学习事件
+    elements.exitCardStudyBtn.addEventListener('click', exitCardStudy);
+    elements.cardPrevBtn.addEventListener('click', prevCard);
+    elements.cardNextBtn.addEventListener('click', nextCard);
+    elements.cardSpeakBtn.addEventListener('click', speakCardWord);
+    elements.cardGotoTestBtn.addEventListener('click', gotoTestFromCard);
+    elements.cardPhonetic.addEventListener('mouseenter', speakCardWord);
+    
+    // 卡片临摹验证
+    elements.cardWriteInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            checkCardWriting();
         }
     });
 }
@@ -802,12 +866,20 @@ async function addToWrongWords() {
 
 //清除错题本
 async function cleanWrongWords() {
+    if (!confirm('确定要清空错题本吗？')) {
+        return;
+    }
+    
     appState.wrongWords = [];
     await setItem('wrongWords', JSON.stringify(appState.wrongWords));
 
-    //删除错题本标签
-    delete appState.taggedWordBanks["错题本"];
+    //更新错题本标签
+    appState.taggedWordBanks["错题本"] = [];
     await setItem('taggedWordBanks', JSON.stringify(appState.taggedWordBanks));
+    
+    // 关闭模态框并刷新显示
+    elements.wrongWordsModal.style.display = 'none';
+    alert('错题本已清空！');
 }
 
 // 判断解释是否相似
@@ -921,3 +993,369 @@ function startExamWithSelectedTag() {
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', initApp);
+
+// ========== 阅读模式功能 ==========
+
+// 开启阅读模式
+function startReadingMode() {
+    appState.readingMode = true;
+    appState.currentPage = 1;
+    appState.selectedWords.clear();
+    
+    // 隐藏其他区域，显示阅读区域
+    elements.wordBankSection.style.display = 'none';
+    elements.examControls.style.display = 'none';
+    elements.practiceSection.style.display = 'none';
+    elements.cardStudySection.style.display = 'none';
+    elements.readingSection.style.display = 'block';
+    
+    // 加载标签选择器
+    loadReadingTagSelector();
+    
+    // 加载词库
+    loadReadingWordBank();
+}
+
+// 退出阅读模式
+function exitReadingMode() {
+    appState.readingMode = false;
+    elements.readingSection.style.display = 'none';
+    showExamControls();
+}
+
+// 加载阅读模式的标签选择器
+function loadReadingTagSelector() {
+    elements.readingTagSelector.innerHTML = '';
+    
+    Object.keys(appState.taggedWordBanks).forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag;
+        option.textContent = tag;
+        elements.readingTagSelector.appendChild(option);
+    });
+}
+
+// 加载阅读词库
+function loadReadingWordBank() {
+    const selectedTag = elements.readingTagSelector.value;
+    if (!selectedTag) return;
+    
+    const wordBank = appState.taggedWordBanks[selectedTag];
+    if (!wordBank || wordBank.length === 0) {
+        elements.wordList.innerHTML = '<tr><td colspan="4" style="text-align: center;">该标签下没有词库内容</td></tr>';
+        return;
+    }
+    
+    appState.readingWordBank = wordBank;
+    appState.currentPage = 1;
+    renderWordList();
+}
+
+// 渲染单词列表
+function renderWordList() {
+    const startIndex = (appState.currentPage - 1) * appState.pageSize;
+    const endIndex = Math.min(startIndex + appState.pageSize, appState.readingWordBank.length);
+    const currentWords = appState.readingWordBank.slice(startIndex, endIndex);
+    
+    elements.wordList.innerHTML = '';
+    
+    currentWords.forEach((word, index) => {
+        const globalIndex = startIndex + index;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="checkbox-col">
+                <input type="checkbox" class="word-checkbox" data-index="${globalIndex}" ${appState.selectedWords.has(globalIndex) ? 'checked' : ''}>
+            </td>
+            <td class="word-col">${word.english}</td>
+            <td class="phonetic-col">
+                <span class="phonetic-hover" data-word="${word.english}">${word.phonetic}</span>
+                <button class="speaker-btn" data-word="${word.english}">🔊</button>
+            </td>
+            <td class="meaning-col">${word.explanation}</td>
+        `;
+        elements.wordList.appendChild(tr);
+    });
+    
+    // 绑定单词选择事件
+    document.querySelectorAll('.word-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            if (e.target.checked) {
+                appState.selectedWords.add(index);
+            } else {
+                appState.selectedWords.delete(index);
+            }
+        });
+    });
+    
+    // 绑定音标悬停朗读事件
+    // document.querySelectorAll('.phonetic-hover').forEach(phonetic => {
+    //     phonetic.addEventListener('mouseenter', (e) => {
+    //         const word = e.target.dataset.word;
+    //         speakWord(word);
+    //     });
+    // });
+    
+    // 绑定扬声器按钮事件
+    document.querySelectorAll('.speaker-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const word = e.target.dataset.word;
+            speakWord(word);
+        });
+
+        btn.addEventListener('mouseenter', (e) => {
+            const word = e.target.dataset.word;
+            speakWord(word);
+        });
+    });
+    
+    // 更新分页信息
+    updatePagination();
+}
+
+// 更新分页信息
+function updatePagination() {
+    const totalPages = Math.ceil(appState.readingWordBank.length / appState.pageSize);
+    const totalCount = appState.readingWordBank.length;
+    
+    elements.pageInfo.textContent = `${appState.currentPage} / ${totalPages}`;
+    elements.totalCountSpan.textContent = `共 ${totalCount} 条`;
+    elements.pageJumpInput.max = totalPages;
+    elements.pageJumpInput.value = appState.currentPage;
+    
+    elements.prevPageBtn.disabled = appState.currentPage === 1;
+    elements.nextPageBtn.disabled = appState.currentPage >= totalPages;
+}
+
+// 上一页
+function prevPage() {
+    if (appState.currentPage > 1) {
+        appState.currentPage--;
+        renderWordList();
+    }
+}
+
+// 下一页
+function nextPage() {
+    const totalPages = Math.ceil(appState.readingWordBank.length / appState.pageSize);
+    if (appState.currentPage < totalPages) {
+        appState.currentPage++;
+        renderWordList();
+    }
+}
+
+// 跳转到指定页
+function goToPage() {
+    const pageNum = parseInt(elements.pageJumpInput.value);
+    const totalPages = Math.ceil(appState.readingWordBank.length / appState.pageSize);
+    
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
+        alert(`请输入有效的页码（1-${totalPages}）`);
+        elements.pageJumpInput.value = appState.currentPage;
+        return;
+    }
+    
+    appState.currentPage = pageNum;
+    renderWordList();
+}
+
+// 修改每页显示条数
+function changePageSize() {
+    appState.pageSize = parseInt(elements.pageSizeSelector.value);
+    appState.currentPage = 1; // 重置到第一页
+    renderWordList();
+}
+
+// 全选/取消全选
+function toggleSelectAll() {
+    const startIndex = (appState.currentPage - 1) * appState.pageSize;
+    const endIndex = Math.min(startIndex + appState.pageSize, appState.readingWordBank.length);
+    
+    if (elements.selectAllCheckbox.checked) {
+        for (let i = startIndex; i < endIndex; i++) {
+            appState.selectedWords.add(i);
+        }
+    } else {
+        for (let i = startIndex; i < endIndex; i++) {
+            appState.selectedWords.delete(i);
+        }
+    }
+    
+    renderWordList();
+}
+
+// 开始卡片学习
+function startCardStudy() {
+    let studyWords;
+    
+    if (appState.selectedWords.size > 0) {
+        // 如果有选中的单词，使用选中的单词（按原词库顺序）
+        const selectedIndices = Array.from(appState.selectedWords).sort((a, b) => a - b);
+        studyWords = selectedIndices.map(index => appState.readingWordBank[index]);
+    } else {
+        // 否则使用整个词库按顺序
+        studyWords = appState.readingWordBank;
+    }
+    
+    if (studyWords.length === 0) {
+        alert('没有可以学习的单词！');
+        return;
+    }
+    
+    appState.cardStudyMode = true;
+    appState.cardStudyWords = studyWords;
+    appState.currentCardIndex = 0;
+    
+    // 隐藏阅读区域，显示卡片学习区域
+    elements.readingSection.style.display = 'none';
+    elements.cardStudySection.style.display = 'block';
+    
+    // 显示第一张卡片
+    renderCard();
+}
+
+// 退出卡片学习
+function exitCardStudy() {
+    appState.cardStudyMode = false;
+    elements.cardStudySection.style.display = 'none';
+    elements.readingSection.style.display = 'block';
+}
+
+// 渲染卡片
+function renderCard() {
+    const word = appState.cardStudyWords[appState.currentCardIndex];
+    
+    elements.cardWordText.textContent = word.english;
+    elements.cardPhonetic.textContent = word.phonetic;
+    elements.cardPhonetic.dataset.word = word.english;
+    elements.cardMeaningText.textContent = word.explanation;
+    
+    // 清空临摹输入和结果
+    elements.cardWriteInput.value = '';
+    elements.cardWriteInput.placeholder = word.english;
+    elements.cardWriteResult.textContent = '';
+    elements.cardWriteResult.className = 'card-write-result';
+    
+    // 更新进度
+    elements.cardProgressText.textContent = `${appState.currentCardIndex + 1}/${appState.cardStudyWords.length}`;
+    
+    // 更新按钮状态
+    elements.cardPrevBtn.disabled = appState.currentCardIndex === 0;
+    elements.cardNextBtn.disabled = appState.currentCardIndex >= appState.cardStudyWords.length - 1;
+    
+    // 自动朗读单词3次
+    autoSpeakWordThreeTimes(word.english);
+}
+
+// 自动朗读单词3次
+function autoSpeakWordThreeTimes(word) {
+    if ('speechSynthesis' in window) {
+        let count = 0;
+        const speakOnce = () => {
+            if (count < 3) {
+                const msg = new SpeechSynthesisUtterance(word.toLowerCase());
+                msg.lang = "en-US";
+                msg.rate = 0.8;
+                msg.pitch = 1;
+                
+                // 朗读结束后，等待500ms再朗读下一次
+                msg.onend = () => {
+                    count++;
+                    if (count < 3) {
+                        setTimeout(speakOnce, 500);
+                    }
+                };
+                
+                window.speechSynthesis.speak(msg);
+            }
+        };
+        
+        // 开始第一次朗读
+        speakOnce();
+    }
+}
+
+// 验证卡片临摹
+function checkCardWriting() {
+    const userInput = elements.cardWriteInput.value.trim().toLowerCase();
+    const currentWord = appState.cardStudyWords[appState.currentCardIndex];
+    const correctAnswer = currentWord.english.toLowerCase();
+    
+    if (!userInput) {
+        return;
+    }
+    
+    if (userInput === correctAnswer) {
+        // 正确
+        elements.cardWriteResult.textContent = '正确！';
+        elements.cardWriteResult.className = 'card-write-result correct';
+        
+        // 1秒后自动跳转到下一个
+        setTimeout(() => {
+            if (appState.currentCardIndex < appState.cardStudyWords.length - 1) {
+                nextCard();
+            } else {
+                elements.cardWriteResult.textContent = '已完成所有单词！';
+            }
+        }, 1000);
+    } else {
+        // 错误
+        elements.cardWriteResult.innerHTML = `错误！正确答案是：<strong>${currentWord.english}</strong>`;
+        elements.cardWriteResult.className = 'card-write-result incorrect';
+    }
+}
+
+// 上一张卡片
+function prevCard() {
+    if (appState.currentCardIndex > 0) {
+        appState.currentCardIndex--;
+        renderCard();
+    }
+}
+
+// 下一张卡片
+function nextCard() {
+    if (appState.currentCardIndex < appState.cardStudyWords.length - 1) {
+        appState.currentCardIndex++;
+        renderCard();
+    }
+}
+
+// 朗读卡片单词
+function speakCardWord() {
+    const word = elements.cardPhonetic.dataset.word;
+    if (word) {
+        speakWord(word);
+    }
+}
+
+// 从卡片学习跳转到测试
+function gotoTestFromCard() {
+    appState.examMode = true;
+    appState.currentWordBank = appState.cardStudyWords;
+    appState.usedWords = [];
+    appState.examStartTime = new Date();
+    
+    // 隐藏卡片学习区域，显示练习区域
+    elements.cardStudySection.style.display = 'none';
+    elements.practiceSection.style.display = 'block';
+    
+    // 重置统计数据
+    appState.stats = { correct: 0, wrong: 0 };
+    updateStatsDisplay();
+    updateProgress();
+    
+    // 生成第一个问题
+    generateQuestion();
+}
+
+// 朗读单词（通用函数）
+function speakWord(word) {
+    if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance(word.toLowerCase());
+        msg.lang = "en-US";
+        msg.rate = 0.8;
+        msg.pitch = 1;
+        window.speechSynthesis.speak(msg);
+    }
+}

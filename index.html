@@ -9,11 +9,6 @@
 <body>
     <div class="container">
         <h1>单词默写练习</h1>
-        
-        <div class="mode-selector">
-            <button id="mode1" class="mode-btn active">默写模式</button>
-            <button id="mode2" class="mode-btn">翻译模式</button>
-        </div>
 
         <div id="word-bank-section">
             <h2>词库管理</h2>
@@ -42,9 +37,9 @@ n. 祖父; 外祖父"></textarea>
         <div id="exam-controls" style="display: none; text-align: center; margin: 20px 0;">
             <button id="startExam" class="exam-btn">开始默写</button>
             <button id="viewWrongWords" class="exam-btn">查看错题本</button>
-            <button id="clearWrongWords" class="exam-btn">清空错题本</button>
             <button id="viewExamHistory" class="exam-btn">查看考试记录</button>
             <button id="manageWordBank" class="exam-btn">词库管理</button>
+            <button id="startReading" class="exam-btn">阅读单词</button>
         </div>
 
         <div id="tag-selection-modal" class="modal" style="display: none;">
@@ -66,6 +61,12 @@ n. 祖父; 外祖父"></textarea>
                     <button id="endExam" class="end-exam-btn">结束考试</button>
                 </div>
             </div>
+            
+            <div class="mode-selector">
+                <button id="mode1" class="mode-btn active">默写模式</button>
+                <button id="mode2" class="mode-btn">翻译模式</button>
+            </div>
+            
             <div id="question"></div>
             <input type="text" id="answer" placeholder="请输入答案">
             <div class="button-group">
@@ -86,6 +87,9 @@ n. 祖父; 外祖父"></textarea>
                 <span class="close">&times;</span>
                 <h2>错题本</h2>
                 <div id="wrong-words-list"></div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="clearWrongWords" class="exam-btn" style="background: #dc3545;">清空错题本</button>
+                </div>
             </div>
         </div>
         
@@ -94,6 +98,102 @@ n. 祖父; 外祖父"></textarea>
                 <span class="close-history">&times;</span>
                 <h2>考试记录</h2>
                 <div id="exam-history-list"></div>
+            </div>
+        </div>
+
+        <div id="reading-section" style="display: none;">
+            <div class="exam-header">
+                <h2>阅读模式</h2>
+                <button id="exitReading" class="end-exam-btn">返回首页</button>
+            </div>
+            
+            <div class="reading-controls">
+                <div class="tag-selection">
+                    <label for="readingTagSelector">选择词库：</label>
+                    <select id="readingTagSelector"></select>
+                </div>
+            </div>
+
+            <div id="word-list-container">
+                <table class="word-table">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-col">
+                                <input type="checkbox" id="selectAll" title="全选">
+                            </th>
+                            <th class="word-col">单词</th>
+                            <th class="phonetic-col">音标连读</th>
+                            <th class="meaning-col">释义</th>
+                        </tr>
+                    </thead>
+                    <tbody id="word-list">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                <button id="prevPage" class="page-btn">上一页</button>
+                <span id="pageInfo">1</span>
+                <button id="nextPage" class="page-btn">下一页</button>
+                <span class="page-jump">
+                    跳转到 <input type="number" id="pageJump" min="1" value="1" style="width: 60px; padding: 5px;"> 页
+                    <button id="goToPage" class="page-btn">跳转</button>
+                </span>
+                <span class="page-size-selector">
+                    每页 
+                    <select id="pageSizeSelector" style="padding: 5px;">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    条
+                </span>
+                <span id="totalCount" class="total-count">共 0 条</span>
+            </div>
+
+            <div class="reading-footer">
+                <button id="startCardStudy" class="exam-btn">卡片学习</button>
+            </div>
+        </div>
+
+        <div id="card-study-section" style="display: none;">
+            <div class="exam-header">
+                <h2>卡片学习</h2>
+                <div class="exam-progress">
+                    <span id="card-progress-text">1/17</span>
+                    <button id="exitCardStudy" class="end-exam-btn">返回单词列表</button>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="card-word">
+                    <h3 id="card-word-text">Monday</h3>
+                    <div class="card-phonetic-container">
+                        <span id="card-phonetic" class="phonetic-hover">['mʌndi]</span>
+                        <button id="card-speak-btn" class="speaker-btn">🔊</button>
+                    </div>
+                </div>
+
+                <div class="card-meaning">
+                    <h4>释义：</h4>
+                    <p id="card-meaning-text">n. 星期一</p>
+                </div>
+
+                <div class="card-write-area">
+                    <p class="write-hint">您还可以临摹下单词：</p>
+                    <input type="text" id="card-write-input" class="card-write-input" placeholder="">
+                    <div id="card-write-result" class="card-write-result"></div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <button id="card-prev-btn" class="card-nav-btn">◀ 上一个</button>
+                <button id="card-next-btn" class="card-nav-btn">下一个 ▶</button>
+            </div>
+
+            <div class="card-test-btn-container">
+                <button id="card-goto-test" class="exam-btn card-test-btn">马上测试 ▼</button>
             </div>
         </div>
     </div>
